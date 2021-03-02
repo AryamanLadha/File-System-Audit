@@ -4,8 +4,10 @@ import csv
 def parse(filename):
     #List of free block numbers
     free_inodes = []
+    is_free_inodes = {}
     #List of free inode numbers
     free_blocks = []
+    is_free_blocks = {}
     #Superblock summary
     superblock = {}
     #Group summary 
@@ -25,8 +27,10 @@ def parse(filename):
     for i in data:
         if(i[0] == "BFREE"):
             free_blocks.append(int(i[1]))
+            is_free_blocks[int(i[1])] = True
         elif(i[0] == "IFREE"):
             free_inodes.append(int(i[1]))
+            is_free_inodes[int(i[1])] = True
         elif(i[0] == "SUPERBLOCK"):
             superblock["num_blocks"] =  int(i[1]) #Total number of blocks
             superblock["num_inodes"] =  int(i[2]) #Total number of inodes
@@ -45,6 +49,7 @@ def parse(filename):
             group["inode_bitmap"] = int(i[7])
             group["inode_table"] = int(i[8])
         elif(i[0] == "INODE"):
+            is_free_inodes[int(i[1])] = False
             inode = {}
             inode["number"] = int(i[1])
             inode["type"] = i[2]
@@ -58,6 +63,8 @@ def parse(filename):
             inode["file_size"] = i[10]
             inode["num_blocks"] = i[11]
             inode["blocks"] = list(map(int, i[12:]))
+            for b in inode["blocks"]:
+                is_free_blocks[b] = False
             inode_summaries.append(inode)
         elif(i[0] == "DIRENT"):
             dirent = {}
@@ -76,7 +83,8 @@ def parse(filename):
             indir["indir"] = int(i[4])
             indir["block_num"] = int(i[5])
             indirect.append(indir)
-    return free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect
+            is_free_blocks[int(i[5])] = False
+    return free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect, is_free_blocks, is_free_inodes
 
 def calculate_offset(i):
     if(i == 12): #Single indirect
@@ -89,14 +97,14 @@ def calculate_offset(i):
         return 0, ""
 
 def main():
-    free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect = parse('P3B-test_1.csv')
+    free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect, block_bitmap, inode_bitmap =\
+    parse('P3B-test_1.csv')
     reserved = [0,1,2,3,4,5,6,7,64]
     # for i in indirect:
     #     print("Indirect block with block number" + str(i["block_num"]))
     #Check for Data Block Number errors
     max_block = superblock["num_blocks"]
-    orig_block_bitmap = free_blocks
-    my_block_bitmap = []
+    my_block_bitmap  = {}
     for inode in inode_summaries:
         if(inode["mode"] == 0):
             continue
@@ -110,14 +118,19 @@ def main():
                     print("INVALID "+ s + "BLOCK " + str(i) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
                 elif(i in reserved):
                     print("RESERVED")
-                elif(i in orig_block_bitmap):
+                elif(block_bitmap[i] == True):
                     print("ALLOCATED")
-                elif(i in my_block_bitmap):
+                elif(i in my_block_bitmap.keys() and (my_block_bitmap[i] == False)):
                     print("DUPLICATED")
-                my_block_bitmap.append(i)
-            
+                my_block_bitmap[i] = False #False means allocated, True means free
+    for block in my_block_bitmap.keys():
+        if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
+            print("UNREFERENCED BLOCK " + str(block))
 
-            
+
+
+
+
 
 
 
