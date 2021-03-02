@@ -126,6 +126,13 @@ def main():
     for block in my_block_bitmap.keys():
         if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
             print("UNREFERENCED BLOCK " + str(block))
+    #Check for inode errors
+    for inode in inode_summaries:
+        num = inode["number"]
+        if((inode["mode"]!=0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == True) ):
+            print("ALLOCATED INODE " + str(num) + " ON FREELIST")
+        elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
+            print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST")
 
 
 
