@@ -2,26 +2,15 @@
 import csv
 
 def parse(filename):
-    #List of free block numbers
-    free_inodes = []
+    free_inodes = [] #List of free inode numbers
     is_free_inodes = {}
-    #List of free inode numbers
-    free_blocks = []
+    free_blocks = [] #List of free block numbers
     is_free_blocks = {}
-    #Superblock summary
-    superblock = {}
-    #Group summary 
-    #Note: There will only be one group
-    group = {}
-    #Inode summaries
-    #List of dictionaries
-    inode_summaries = []
-    #Directory entries
-    #List of dictionaries
-    dir_entries = []
-    #Indirect blocks
-    #List of dictionaries
-    indirect= []
+    superblock = {} #Superblock summary
+    group = {} #Group summary -- Note: There will only be one group
+    inode_summaries = [] #Inode summaries -- List of dictionaries
+    dir_entries = [] #Directory entries -- List of dictionaries
+    indirect= [] #Indirect blocks -- List of dictionaries
     file = open(filename, newline='')
     data = csv.reader(file, delimiter=',', quotechar= '|' )
     for i in data:
@@ -62,7 +51,7 @@ def parse(filename):
             inode["last_access"] =  i[9]
             inode["file_size"] = i[10]
             inode["num_blocks"] = i[11]
-            inode["blocks"] = list(map(int, i[12:]))
+            inode["blocks"] = list(map(int, i[12:])) #Figure this out later -> bug
             for b in inode["blocks"]:
                 is_free_blocks[b] = False
             inode_summaries.append(inode)
@@ -111,18 +100,20 @@ def main():
         for j in range(len(inode["blocks"])):
             if(j>14):
                 break
-            i = inode["blocks"][j]
+            cur_block_num = inode["blocks"][j]
+            if cur_block_num==0:
+                continue
+            print("cur_block_num = " + str(cur_block_num))
             offset, s = calculate_offset(j)
-            if(i!=0):
-                if( (i < 0) or i>max_block):
-                    print("INVALID "+ s + "BLOCK " + str(i) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
-                elif(i in reserved):
-                    print("RESERVED")
-                elif(block_bitmap[i] == True):
-                    print("ALLOCATED")
-                elif(i in my_block_bitmap.keys() and (my_block_bitmap[i] == False)):
-                    print("DUPLICATED")
-                my_block_bitmap[i] = False #False means allocated, True means free
+            if((cur_block_num < 0) or cur_block_num>max_block):
+                print("INVALID "+ s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
+            elif(cur_block_num in reserved):
+                print("RESERVED")
+            elif(block_bitmap[cur_block_num] == True):
+                print("ALLOCATED")
+            elif(cur_block_num in my_block_bitmap.keys() and (my_block_bitmap[cur_block_num] == False)):
+                print("DUPLICATED")
+            my_block_bitmap[cur_block_num] = False #False means allocated, True means free
     for block in my_block_bitmap.keys():
         if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
             print("UNREFERENCED BLOCK " + str(block))
@@ -133,6 +124,8 @@ def main():
             print("ALLOCATED INODE " + str(num) + " ON FREELIST")
         elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
             print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST")
+    print(inode_summaries)
+
 
 
 
