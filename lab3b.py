@@ -210,13 +210,40 @@ def main():
         if reported_links != real_links:
             print("INODE " + str(inode["number"]) + " HAS " + str(real_links) + " LINKS BUT LINKCOUNT IS " + str(reported_links))
 
+    # should_print=True
+    # for i in links_per_inode:
+    #     for inode in inode_summaries:
+    #         if inode["number"]==i:
+    #             should_print=False
+    #     if should_print:
+    #         print(DIRECTORY INODE 2 NAME 'nullEntry' UNALLOCATED INODE + str(i))
+
+
+    inode_nums=set()
+    for inode in inode_summaries:
+        inode_nums.add(inode["number"])
+
+    try:
+        file = open(args.filename, newline='')
+    except:
+        sys.stderr.write('Error: Could not open given filename: ' + args.filename + "\n")
+        exit(1)
+    data = csv.reader(file, delimiter=',', quotechar= '|' )
+    for i in data:
+        if(i[0] == "DIRENT"):
+            parent_directory=int(i[1])
+            cur_inode=int(i[3])
+            if cur_inode < 1 or cur_inode > group["num_inodes"]:
+                print("DIRECTORY INODE " + str(parent_directory) + " NAME " + str(i[6]) + " INVALID INODE " + str(cur_inode))
+            elif cur_inode not in inode_nums:
+                print("DIRECTORY INODE " + str(parent_directory) + " NAME " + str(i[6]) + " UNALLOCATED INODE " + str(cur_inode))
 
 
 #INODE 18 HAS 0 LINKS BUT LINKCOUNT IS 1
 #INODE 2 HAS 4 LINKS BUT LINKCOUNT IS 5
 
 
-
+#DIRECTORY INODE 2 NAME 'bogusEntry' INVALID INODE 26
 
 
 if __name__ == "__main__":
