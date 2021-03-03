@@ -108,7 +108,7 @@ def main():
             if((cur_block_num < 0) or cur_block_num>max_block):
                 print("INVALID "+ s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
             elif(cur_block_num in reserved):
-                print("RESERVED")
+                print("RESERVED " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
             elif(block_bitmap[cur_block_num] == True):
                 print("ALLOCATED")
             elif(cur_block_num in my_block_bitmap.keys() and (my_block_bitmap[cur_block_num] == False)):
@@ -124,8 +124,6 @@ def main():
             print("ALLOCATED INODE " + str(num) + " ON FREELIST")
         elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
             print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST")
-    print(inode_summaries)
-
 
 
 
