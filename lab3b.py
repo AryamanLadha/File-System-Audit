@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import csv, argparse, sys
 
+parents_dict={}
+links_per_inode={}
 def parse(filename):
     free_inodes = [] #List of free inode numbers
     is_free_inodes = {}
@@ -11,6 +13,7 @@ def parse(filename):
     inode_summaries = [] #Inode summaries -- List of dictionaries
     dir_entries = [] #Directory entries -- List of dictionaries
     indirect= [] #Indirect blocks -- List of dictionaries
+
     try:
         file = open(filename, newline='')
     except:
@@ -68,6 +71,11 @@ def parse(filename):
             dirent["name_len"] = int(i[5])
             dirent["name"] = i[6]
             dir_entries.append(dirent)
+            parents_dict[int(i[3])]=int(i[1])
+            if int(i[3]) not in links_per_inode:
+                links_per_inode[int(i[3])]=1
+            else:
+                links_per_inode[int(i[3])]+=1
         elif(i[0] == "INDIRECT"):
             indir = {}
             indir["inumber"] = int(i[1])
@@ -182,12 +190,30 @@ def main():
         if(i not in free_inodes and inode_bitmap[i]==True):
             print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
 
+    # for inode in inode_summaries:
+    #     print(inode["number"])
+
+    # for i in links_per_inode.keys():
+    #     print(str(i) + " ===> " + str(links_per_inode[i]))
+    # print("=======================")
+    # for i in parents_dict.keys():
+    #     print(str(i) + " ===> " + str(parents_dict[i]))
+
+    for inode in inode_summaries:
+        reported_links=inode["link_count"]
+        if (inode["number"] not in links_per_inode) and reported_links==0:
+            continue
+        if (inode["number"] not in links_per_inode) and reported_links!=0:
+            print("INODE " + str(inode["number"]) + " HAS " + "0" + " LINKS BUT LINKCOUNT IS " + str(reported_links))
+            continue
+        real_links=links_per_inode[inode["number"]]
+        if reported_links != real_links:
+            print("INODE " + str(inode["number"]) + " HAS " + str(real_links) + " LINKS BUT LINKCOUNT IS " + str(reported_links))
 
 
 
-
-
-
+#INODE 18 HAS 0 LINKS BUT LINKCOUNT IS 1
+#INODE 2 HAS 4 LINKS BUT LINKCOUNT IS 5
 
 
 
