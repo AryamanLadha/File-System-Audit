@@ -71,7 +71,8 @@ def parse(filename):
             dirent["name_len"] = int(i[5])
             dirent["name"] = i[6]
             dir_entries.append(dirent)
-            parents_dict[int(i[3])]=int(i[1])
+            if int(i[3]) not in parents_dict:
+                parents_dict[int(i[3])]=int(i[1])
             if int(i[3]) not in links_per_inode:
                 links_per_inode[int(i[3])]=1
             else:
@@ -231,12 +232,19 @@ def main():
     data = csv.reader(file, delimiter=',', quotechar= '|' )
     for i in data:
         if(i[0] == "DIRENT"):
-            parent_directory=int(i[1])
             cur_inode=int(i[3])
             if cur_inode < 1 or cur_inode > group["num_inodes"]:
-                print("DIRECTORY INODE " + str(parent_directory) + " NAME " + str(i[6]) + " INVALID INODE " + str(cur_inode))
+                print("DIRECTORY INODE " + i[1] + " NAME " + str(i[6]) + " INVALID INODE " + str(cur_inode))
             elif cur_inode not in inode_nums:
-                print("DIRECTORY INODE " + str(parent_directory) + " NAME " + str(i[6]) + " UNALLOCATED INODE " + str(cur_inode))
+                print("DIRECTORY INODE " + i[1] + " NAME " + str(i[6]) + " UNALLOCATED INODE " + str(cur_inode))
+            if(i[6] == "'.'"):
+                if(int(i[3])!=int(i[1])):
+                    print("DIRECTORY INODE 2 NAME '.' LINK TO INODE " + i[3] + " SHOULD BE " + i[1])
+            if(i[6] == "'..'"):
+                #print(i)
+                if(int(i[3]) != parents_dict[int(i[1])]):
+                    print("DIRECTORY INODE 2 NAME '..' LINK TO INODE " + i[3] + " SHOULD BE " + str(parents_dict[int(i[1])]))
+        
 
 
 #INODE 18 HAS 0 LINKS BUT LINKCOUNT IS 1
@@ -244,7 +252,7 @@ def main():
 
 
 #DIRECTORY INODE 2 NAME 'bogusEntry' INVALID INODE 26
-
+#DIRECTORY INODE 2 NAME '..' LINK TO INODE 11 SHOULD BE 2
 
 if __name__ == "__main__":
     main()
