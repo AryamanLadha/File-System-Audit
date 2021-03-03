@@ -167,16 +167,21 @@ def main():
 
 
     #Check for inode errors
-    # for inode in inode_summaries:
-    #     num = inode["number"]
-    #     if((inode["mode"]!=0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == True) ):
-    #         print("ALLOCATED INODE " + str(num) + " ON FREELIST") #Error here
-    #     elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
-    #         print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST") #Error here
-
     for inode in inode_summaries:
-        if(inode["type"]=='0'):
-            
+         if inode["type"]=='0' and inode["number"] not in free_inodes:
+            print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
+         if(inode["number"]!=0):
+             if(inode["number"] in free_inodes):
+                 print("ALLOCATED INODE " + str(inode["number"]) + " ON FREELIST")
+
+    #inode bitmap is 1 when free
+    for i in range(superblock["first_inode"],superblock["num_inodes"]):
+        if(i not in free_inodes and i not in inode_bitmap.keys()):
+            print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
+            continue
+        if(i not in free_inodes and inode_bitmap[i]==True):
+            print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
+
 
 
 
