@@ -104,11 +104,10 @@ def main():
     free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect, block_bitmap, inode_bitmap =\
     parse(args.filename)
     reserved = [0,1,2,3,4,5,6,7,64]
-    # for i in indirect:
-    #     print("Indirect block with block number" + str(i["block_num"]))
     #Check for Data Block Number errors
     max_block = superblock["num_blocks"]
     my_block_bitmap  = {}
+    duplicates = [[None for x in range(0)] for y in range(max_block)] 
     for inode in inode_summaries:
         if(inode["mode"] == 0):
             continue
@@ -120,43 +119,51 @@ def main():
                 continue
             #print("cur_block_num = " + str(cur_block_num))
             offset, s = calculate_offset(j)
+            message= s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset)
+            #print(message)
             if((cur_block_num < 0) or cur_block_num>max_block):
                 print("INVALID "+ s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
-            elif(cur_block_num in reserved):
-                print("RESERVED " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
-            elif(block_bitmap[cur_block_num] == True):
-                print("ALLOCATED BLOCK " + str(cur_block_num) +" ON FREELIST")
-            elif(cur_block_num in my_block_bitmap.keys() and (my_block_bitmap[cur_block_num] == False)):
-                print("DUPLICATE " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
-            my_block_bitmap[cur_block_num] = False #False means allocated, True means free
-    
+            else:
+                if(cur_block_num in reserved):
+                    print("RESERVED " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
+                if(block_bitmap[cur_block_num] == True):
+                    print("ALLOCATED BLOCK " + str(cur_block_num) +" ON FREELIST")
+                my_block_bitmap[cur_block_num] = False #False means allocated, True means free
+                duplicates[cur_block_num].append(message)
+
     for indir_block in indirect:
         block_num = indir_block["block_num"]
         inode_num = indir_block["inumber"]
         level = indir_block["level"]
         offset, s = calculate_indirect_offset(level)
+        message= s + " BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset)
         if((block_num < 0) or block_num>max_block):
                 print("INVALID "+ s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
-        elif(block_num in reserved):
-                print("RESERVED " + s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
-        elif(block_bitmap[block_num] == True):
-                print("ALLOCATED BLOCK " + str(cur_block_num) + " ON FREELIST")
-        elif(block_num in my_block_bitmap.keys() and (my_block_bitmap[block_num] == False)):
-                print("DUPLICATE " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
-        my_block_bitmap[cur_block_num] = False #False means allocated, True means free
+        else:
+            if(block_num in reserved):
+                    print("RESERVED " + s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
+            if(block_bitmap[block_num] == True):
+                    print("ALLOCATED BLOCK " + str(cur_block_num) + " ON FREELIST")#Error here
+            my_block_bitmap[cur_block_num] = False #False means allocated, True means free
+            duplicates[block_num].append(message)
     
+    for i in duplicates:
+        if len(i)>1:
+            for elem in i:
+                print("DUPLICATE " + elem)
+
     for block in my_block_bitmap.keys():
         if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
-            print("UNREFERENCED BLOCK " + str(block))
+            print("UNREFERENCED BLOCK " + str(block))#Error here
 
 
     #Check for inode errors
     for inode in inode_summaries:
         num = inode["number"]
         if((inode["mode"]!=0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == True) ):
-            print("ALLOCATED INODE " + str(num) + " ON FREELIST")
+            print("ALLOCATED INODE " + str(num) + " ON FREELIST") #Error here
         elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
-            print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST")
+            print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST") #Error here
 
 
 
