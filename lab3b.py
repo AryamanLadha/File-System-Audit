@@ -125,9 +125,9 @@ def main():
             elif(cur_block_num in reserved):
                 print("RESERVED " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
             elif(block_bitmap[cur_block_num] == True):
-                print("ALLOCATED")
+                print("ALLOCATED BLOCK " + str(cur_block_num) +" ON FREELIST")
             elif(cur_block_num in my_block_bitmap.keys() and (my_block_bitmap[cur_block_num] == False)):
-                print("DUPLICATED")
+                print("DUPLICATE " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
             my_block_bitmap[cur_block_num] = False #False means allocated, True means free
     
     for indir_block in indirect:
@@ -140,9 +140,9 @@ def main():
         elif(block_num in reserved):
                 print("RESERVED " + s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
         elif(block_bitmap[block_num] == True):
-                print("ALLOCATED")
+                print("ALLOCATED BLOCK " + str(cur_block_num) + " ON FREELIST")
         elif(block_num in my_block_bitmap.keys() and (my_block_bitmap[block_num] == False)):
-                print("DUPLICATED")
+                print("DUPLICATE " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
         my_block_bitmap[cur_block_num] = False #False means allocated, True means free
     
     for block in my_block_bitmap.keys():
