@@ -112,7 +112,7 @@ def main():
     args = parser.parse_args()
     free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect, block_bitmap, inode_bitmap =\
     parse(args.filename)
-    reserved = [0,1,2,3,4,5,6,7,64]
+    reserved= [i for i in range(8)]
     #Check for Data Block Number errors
     max_block = superblock["num_blocks"]
     my_block_bitmap  = {}
@@ -244,7 +244,7 @@ def main():
                 #print(i)
                 if(int(i[3]) != parents_dict[int(i[1])]):
                     print("DIRECTORY INODE 2 NAME '..' LINK TO INODE " + i[3] + " SHOULD BE " + str(parents_dict[int(i[1])]))
-        
+
 
 
 #INODE 18 HAS 0 LINKS BUT LINKCOUNT IS 1
