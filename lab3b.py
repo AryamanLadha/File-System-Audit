@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import csv
+import csv, argparse, sys
 
 def parse(filename):
     free_inodes = [] #List of free inode numbers
@@ -11,7 +11,11 @@ def parse(filename):
     inode_summaries = [] #Inode summaries -- List of dictionaries
     dir_entries = [] #Directory entries -- List of dictionaries
     indirect= [] #Indirect blocks -- List of dictionaries
-    file = open(filename, newline='')
+    try:
+        file = open(filename, newline='')
+    except:
+        sys.stderr.write('Error: Could not open given filename: ' + filename + "\n")
+        exit(1)
     data = csv.reader(file, delimiter=',', quotechar= '|' )
     for i in data:
         if(i[0] == "BFREE"):
@@ -85,9 +89,20 @@ def calculate_offset(i):
     else:
         return 0, ""
 
+def calculate_indirect_offset(i):
+    if (i == 1):
+        return 12, "INDIRECT"
+    elif (i == 2):
+        return 268, "DOUBLE INDIRECT"
+    elif (i == 3):
+        return 65804, "TRIPLE INDIRECT"
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename",type = str, nargs = "?")
+    args = parser.parse_args()
     free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect, block_bitmap, inode_bitmap =\
-    parse('P3B-test_1.csv')
+    parse(args.filename)
     reserved = [0,1,2,3,4,5,6,7,64]
     # for i in indirect:
     #     print("Indirect block with block number" + str(i["block_num"]))
@@ -103,7 +118,7 @@ def main():
             cur_block_num = inode["blocks"][j]
             if cur_block_num==0:
                 continue
-            print("cur_block_num = " + str(cur_block_num))
+            #print("cur_block_num = " + str(cur_block_num))
             offset, s = calculate_offset(j)
             if((cur_block_num < 0) or cur_block_num>max_block):
                 print("INVALID "+ s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
@@ -114,9 +129,27 @@ def main():
             elif(cur_block_num in my_block_bitmap.keys() and (my_block_bitmap[cur_block_num] == False)):
                 print("DUPLICATED")
             my_block_bitmap[cur_block_num] = False #False means allocated, True means free
+    
+    for indir_block in indirect:
+        block_num = indir_block["block_num"]
+        inode_num = indir_block["inumber"]
+        level = indir_block["level"]
+        offset, s = calculate_indirect_offset(level)
+        if((block_num < 0) or block_num>max_block):
+                print("INVALID "+ s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
+        elif(block_num in reserved):
+                print("RESERVED " + s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
+        elif(block_bitmap[block_num] == True):
+                print("ALLOCATED")
+        elif(block_num in my_block_bitmap.keys() and (my_block_bitmap[block_num] == False)):
+                print("DUPLICATED")
+        my_block_bitmap[cur_block_num] = False #False means allocated, True means free
+    
     for block in my_block_bitmap.keys():
         if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
             print("UNREFERENCED BLOCK " + str(block))
+
+
     #Check for inode errors
     for inode in inode_summaries:
         num = inode["number"]
