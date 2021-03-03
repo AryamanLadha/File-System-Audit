@@ -152,18 +152,31 @@ def main():
             for elem in i:
                 print("DUPLICATE " + elem)
 
-    for block in my_block_bitmap.keys():
-        if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
-            print("UNREFERENCED BLOCK " + str(block))#Error here
+    # for block in my_block_bitmap.keys():
+    #     if((block_bitmap[block] == False) and (my_block_bitmap[block] == True)):
+    #         print("UNREFERENCED BLOCK " + str(block))#Error here
+
+    #print(free_blocks)
+    #print(reserved)
+    for i in range(1,max_block):
+        if (len(duplicates[i])==0):
+            if i not in free_blocks and i not in reserved:
+                print("UNREFERENCED BLOCK " + str(i))
+        if (i in free_blocks and (len(duplicates[i])>0)):
+                print("ALLOCATED BLOCK " + str(i) + " ON FREELIST")
 
 
     #Check for inode errors
+    # for inode in inode_summaries:
+    #     num = inode["number"]
+    #     if((inode["mode"]!=0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == True) ):
+    #         print("ALLOCATED INODE " + str(num) + " ON FREELIST") #Error here
+    #     elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
+    #         print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST") #Error here
+
     for inode in inode_summaries:
-        num = inode["number"]
-        if((inode["mode"]!=0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == True) ):
-            print("ALLOCATED INODE " + str(num) + " ON FREELIST") #Error here
-        elif((inode["mode"]==0) and (num in inode_bitmap.keys()) and (inode_bitmap[num] == False)):
-            print("UNALLOCATED INODE " + str(num) + " NOT ON FREELIST") #Error here
+        if(inode["type"]=='0'):
+            
 
 
 
