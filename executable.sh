@@ -1,7 +1,7 @@
 #!/bin/bash
 if [ $# -ne 1 ]
 then
-	echo 'Error: Program can only take in one parameter as input'
+	echo "Error: Program can only take in one parameter as input"
 	exit 1
 fi
 

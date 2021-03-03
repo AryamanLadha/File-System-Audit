@@ -3,6 +3,8 @@ import csv, argparse, sys
 
 parents_dict={}
 links_per_inode={}
+exit_status=0
+
 def parse(filename):
     free_inodes = [] #List of free inode numbers
     is_free_inodes = {}
@@ -53,7 +55,7 @@ def parse(filename):
             inode["owner"] = int(i[4])
             inode["group"] = int(i[5])
             inode["link_count"] = int(i[6])
-            inode["last_change"] =  i[7]
+            inode["last_change"] = i[7]
             inode["modification"] = i[8]
             inode["last_access"] =  i[9]
             inode["file_size"] = i[10]
@@ -112,7 +114,7 @@ def main():
     args = parser.parse_args()
     free_inodes, free_blocks, superblock, group, inode_summaries, dir_entries, indirect, block_bitmap, inode_bitmap =\
     parse(args.filename)
-    reserved= [i for i in range(8)]
+    reserved_blocks = [i for i in range(8)]
     #Check for Data Block Number errors
     max_block = superblock["num_blocks"]
     my_block_bitmap  = {}
@@ -132,11 +134,14 @@ def main():
             #print(message)
             if((cur_block_num < 0) or cur_block_num>max_block):
                 print("INVALID "+ s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
+                exit_status=2
             else:
-                if(cur_block_num in reserved):
+                if(cur_block_num in reserved_blocks):
                     print("RESERVED " + s + "BLOCK " + str(cur_block_num) + " IN INODE " + str(inode["number"]) + " AT OFFSET " + str(offset))
+                    exit_status=2
                 if(block_bitmap[cur_block_num] == True):
                     print("ALLOCATED BLOCK " + str(cur_block_num) +" ON FREELIST")
+                    exit_status=2
                 my_block_bitmap[cur_block_num] = False #False means allocated, True means free
                 duplicates[cur_block_num].append(message)
 
@@ -148,16 +153,20 @@ def main():
         message= s + " BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset)
         if((block_num < 0) or block_num>max_block):
                 print("INVALID "+ s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
+                exit_status=2
         else:
-            if(block_num in reserved):
+            if(block_num in reserved_blocks):
                     print("RESERVED " + s + "BLOCK " + str(block_num) + " IN INODE " + str(inode_num) + " AT OFFSET " + str(offset))
+                    exit_status=2
             if(block_bitmap[block_num] == True):
                     print("ALLOCATED BLOCK " + str(cur_block_num) + " ON FREELIST")#Error here
+                    exit_status=2
             my_block_bitmap[cur_block_num] = False #False means allocated, True means free
             duplicates[block_num].append(message)
     
     for i in duplicates:
         if len(i)>1:
+            exit_status=2
             for elem in i:
                 print("DUPLICATE " + elem)
 
@@ -169,27 +178,34 @@ def main():
     #print(reserved)
     for i in range(1,max_block):
         if (len(duplicates[i])==0):
-            if i not in free_blocks and i not in reserved:
+            if i not in free_blocks and i not in reserved_blocks:
                 print("UNREFERENCED BLOCK " + str(i))
+                exit_status=2
         if (i in free_blocks and (len(duplicates[i])>0)):
                 print("ALLOCATED BLOCK " + str(i) + " ON FREELIST")
+                exit_status=2
 
 
     #Check for inode errors
     for inode in inode_summaries:
          if inode["type"]=='0' and inode["number"] not in free_inodes:
             print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
+            exit_status=2
+
          if(inode["number"]!=0):
              if(inode["number"] in free_inodes):
                  print("ALLOCATED INODE " + str(inode["number"]) + " ON FREELIST")
+                 exit_status=2
 
     #inode bitmap is 1 when free
     for i in range(superblock["first_inode"],superblock["num_inodes"]):
         if(i not in free_inodes and i not in inode_bitmap.keys()):
             print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
+            exit_status=2
             continue
         if(i not in free_inodes and inode_bitmap[i]==True):
             print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
+            exit_status=2
 
     # for inode in inode_summaries:
     #     print(inode["number"])
@@ -206,10 +222,13 @@ def main():
             continue
         if (inode["number"] not in links_per_inode) and reported_links!=0:
             print("INODE " + str(inode["number"]) + " HAS " + "0" + " LINKS BUT LINKCOUNT IS " + str(reported_links))
+            exit_status=2
             continue
         real_links=links_per_inode[inode["number"]]
         if reported_links != real_links:
             print("INODE " + str(inode["number"]) + " HAS " + str(real_links) + " LINKS BUT LINKCOUNT IS " + str(reported_links))
+            exit_status=2
+
 
     # should_print=True
     # for i in links_per_inode:
@@ -235,16 +254,21 @@ def main():
             cur_inode=int(i[3])
             if cur_inode < 1 or cur_inode > group["num_inodes"]:
                 print("DIRECTORY INODE " + i[1] + " NAME " + str(i[6]) + " INVALID INODE " + str(cur_inode))
+                exit_status=2
             elif cur_inode not in inode_nums:
                 print("DIRECTORY INODE " + i[1] + " NAME " + str(i[6]) + " UNALLOCATED INODE " + str(cur_inode))
+                exit_status=2
             if(i[6] == "'.'"):
                 if(int(i[3])!=int(i[1])):
                     print("DIRECTORY INODE 2 NAME '.' LINK TO INODE " + i[3] + " SHOULD BE " + i[1])
+                    exit_status=2
             if(i[6] == "'..'"):
                 #print(i)
                 if(int(i[3]) != parents_dict[int(i[1])]):
                     print("DIRECTORY INODE 2 NAME '..' LINK TO INODE " + i[3] + " SHOULD BE " + str(parents_dict[int(i[1])]))
+                    exit_status=2
 
+    exit(exit_status)
 
 
 #INODE 18 HAS 0 LINKS BUT LINKCOUNT IS 1

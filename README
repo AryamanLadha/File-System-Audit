@@ -6,7 +6,7 @@ The files included in the submission are:
 README (This file)
 Makefile (Builds the executable)
 lab3b.py (A single source file)
-executable.sh ( A shell script to run the python script, and to which the lab3b "executable" links)
+executable.sh (A shell script to run the python script, and to which the lab3b "executable" links)
 
 Sources used:
 To understand the working of the EXT2 filesystem, We used the Discussion 1B and 1E slides.
